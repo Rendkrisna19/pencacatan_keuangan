@@ -33,7 +33,7 @@
   <main class="max-w-md mx-auto mt-8 p-6 space-y-8">
 
     <!-- Input Link Google Sheet -->
-    <!-- <div class="bg-purple-50 rounded-xl shadow-md p-4 border border-purple-300">
+    <div class="bg-purple-50 rounded-xl shadow-md p-4 border border-purple-300">
       <label class="block text-sm font-semibold text-purple-700 mb-3">Link Google Sheets Web App</label>
       <input
         type="text"
@@ -41,7 +41,7 @@
         class="w-full p-3 rounded-lg border border-purple-400 placeholder-purple-400 text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
         placeholder="https://script.google.com/..."
       />
-    </div>  -->
+    </div> 
 
     <!-- Ringkasan -->
     <div class="flex justify-between text-sm space-x-4">
@@ -87,7 +87,29 @@
   </main>
 
   <script>
-   
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let sheetUrl = localStorage.getItem('sheetUrl') || "";
+
+    $("#sheetUrl").val(sheetUrl);
+
+    $("#sheetUrl").on("input", function () {
+      sheetUrl = $(this).val();
+      localStorage.setItem('sheetUrl', sheetUrl);
+    });
+
+    async function syncToSheet(data) {
+      if (!sheetUrl) return;
+      try {
+        await fetch(sheetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (error) {
+        console.error("Gagal sync ke Sheet:", error);
+      }
+    }
 
     function updateTotals() {
       let income = 0, expense = 0;
