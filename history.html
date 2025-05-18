@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Riwayat Transaksi</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-[#F5F3FF] min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-[#6D28D9] text-white py-4 px-6 shadow-lg flex items-center justify-between rounded-b-2xl">
+    <div class="flex items-center gap-3">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/wallet.png" class="w-6 h-6" alt="icon" />
+      <h1 class="text-lg font-semibold">Riwayat Transaksi</h1>
+    </div>
+    <a href="home.html" title="Kembali ke Home">
+      <img src="https://img.icons8.com/ios-filled/24/ffffff/home.png" class="w-6 h-6" />
+    </a>
+  </header>
+
+  <!-- Konten -->
+  <main class="max-w-md mx-auto mt-6 p-4 space-y-4">
+
+    <!-- Filter Bulan & Tahun -->
+    <div class="flex gap-4 items-center text-sm justify-center bg-white p-4 rounded-xl shadow-md max-w-md mx-auto">
+      <div class="flex flex-col">
+        <label for="monthSelect" class="font-semibold text-purple-700 mb-1">Bulan</label>
+        <select id="monthSelect" class="border border-purple-300 rounded-lg px-3 py-2 bg-purple-50 text-purple-800 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <option value="all">Semua Bulan</option>
+          <option value="01">Januari</option>
+          <option value="02">Februari</option>
+          <option value="03">Maret</option>
+          <option value="04">April</option>
+          <option value="05">Mei</option>
+          <option value="06">Juni</option>
+          <option value="07">Juli</option>
+          <option value="08">Agustus</option>
+          <option value="09">September</option>
+          <option value="10">Oktober</option>
+          <option value="11">November</option>
+          <option value="12">Desember</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col">
+        <label for="yearSelect" class="font-semibold text-purple-700 mb-1">Tahun</label>
+        <select id="yearSelect" class="border border-purple-300 rounded-lg px-3 py-2 bg-purple-50 text-purple-800 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-500">
+          <!-- opsi tahun akan diisi otomatis dengan JS -->
+        </select>
+      </div>
+    </div>
+
+    <!-- Ringkasan -->
+    <div class="flex justify-between text-sm">
+      <div class="bg-purple-100 text-purple-800 px-4 py-2 rounded-xl w-[48%] text-center">
+        <div>Pemasukan</div>
+        <div id="totalIncome" class="font-bold">Rp0</div>
+      </div>
+      <div class="bg-pink-100 text-pink-800 px-4 py-2 rounded-xl w-[48%] text-center">
+        <div>Pengeluaran</div>
+        <div id="totalExpense" class="font-bold">Rp0</div>
+      </div>
+    </div>
+
+    <!-- Total Saldo -->
+    <div class="bg-purple-100 text-purple-800 px-4 py-2 rounded-xl w-full text-center mt-4 font-semibold">
+      <div>Total Saldo</div>
+      <div id="totalBalance" class="text-xl">Rp0</div>
+    </div>
+
+    <!-- Tabel Riwayat -->
+    <div class="bg-white rounded-xl shadow p-4 overflow-x-auto">
+      <h2 class="text-base font-semibold mb-2 text-[#6D28D9]">Riwayat Transaksi</h2>
+      <table class="min-w-full text-xs border border-gray-200" id="transactionTable">
+        <thead>
+          <tr class="bg-[#EDE9FE] text-[#4C1D95]">
+            <th class="border p-2">Tanggal</th>
+            <th class="border p-2">Keterangan</th>
+            <th class="border p-2">Kategori</th>
+            <th class="border p-2">+Masuk</th>
+            <th class="border p-2">-Keluar</th>
+            <th class="border p-2">Saldo</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- Container Grafik Terpisah -->
+    <div id="chartContainer" class="bg-white rounded-xl shadow p-4 mt-6">
+      <h2 class="text-base font-semibold mb-2 text-[#6D28D9] text-center">Grafik Pemasukan & Pengeluaran</h2>
+      <canvas id="transactionChart" width="400" height="200"></canvas>
+    </div>
+
+  </main>
+
+  <!-- Tombol Export PDF dan Grafik -->
+  <div class="flex justify-center mt-4 gap-4">
+    <button id="exportPDF" class="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-xl text-sm flex items-center gap-2">
+      💾 Simpan ke PDF
+    </button>
+
+  <script>
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let saldo = 0;
+
+    // Isi dropdown tahun secara dinamis dari data transaksi (atau tahun sekarang minimal)
+    function populateYearSelect() {
+      const yearSelect = $("#yearSelect");
+      yearSelect.empty();
+      yearSelect.append(`<option value="all">Semua Tahun</option>`);
+      const years = new Set();
+      transactions.forEach(t => {
+        if (t.date) {
+          const year = t.date.split("-")[0];
+          years.add(year);
+        }
+      });
+      const currentYear = new Date().getFullYear();
+      years.add(currentYear.toString()); // pastikan tahun sekarang juga ada
+
+      Array.from(years).sort().forEach(y => {
+        yearSelect.append(`<option value="${y}">${y}</option>`);
+      });
+      yearSelect.val("all");
+    }
+
+    // Filter transaksi sesuai bulan & tahun yang dipilih
+    function filterTransactions(month, year) {
+      return transactions.filter(t => {
+        if (!t.date) return false;
+        const [y, m] = t.date.split("-");
+        if (month !== "all" && m !== month) return false;
+        if (year !== "all" && y !== year) return false;
+        return true;
+      });
+    }
+
+    function updateTotals(filtered) {
+      let income = 0, expense = 0;
+      filtered.forEach(t => {
+        if (t.type === "income") income += t.amount;
+        else expense += t.amount;
+      });
+      $("#totalIncome").text(`Rp${income.toLocaleString("id-ID")}`);
+      $("#totalExpense").text(`Rp${expense.toLocaleString("id-ID")}`);
+      const balance = income - expense;
+      $("#totalBalance").text(`Rp${balance.toLocaleString("id-ID")}`);
+      return { income, expense };
+    }
+
+    function renderTable() {
+      const month = $("#monthSelect").val();
+      const year = $("#yearSelect").val();
+      const filtered = filterTransactions(month, year);
+
+      const tbody = $("#transactionTable tbody");
+      tbody.empty();
+      saldo = 0;
+      filtered.forEach(t => {
+        saldo += t.type === "income" ? t.amount : -t.amount;
+        tbody.append(`
+          <tr>
+            <td class='border p-2'>${t.date}</td>
+            <td class='border p-2'>${t.description}</td>
+            <td class='border p-2'>${t.category || "-"}</td>
+            <td class='border p-2'>${t.type === "income" ? "Rp" + t.amount.toLocaleString("id-ID") : ""}</td>
+            <td class='border p-2'>${t.type === "expense" ? "Rp" + t.amount.toLocaleString("id-ID") : ""}</td>
+            <td class='border p-2'>Rp${saldo.toLocaleString("id-ID")}</td>
+          </tr>
+        `);
+      });
+
+      return updateTotals(filtered);
+    }
+
+    $(document).ready(() => {
+      populateYearSelect();
+
+      let chart = null;
+
+      function updateChart(income, expense) {
+        const ctx = document.getElementById('transactionChart').getContext('2d');
+
+        if(chart) {
+          chart.data.datasets[0].data = [income, expense];
+          chart.update();
+        } else {
+          chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['Pemasukan', 'Pengeluaran'],
+              datasets: [{
+                label: 'Jumlah (Rp)',
+                data: [income, expense],
+                backgroundColor: ['#7C3AED', '#DB2777']
+              }]
+            },
+            options: {
+              responsive: true,
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: {
+                    callback: function(value) {
+                      return 'Rp' + value.toLocaleString('id-ID');
+                    }
+                  }
+                }
+              },
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: function(context) {
+                      return 'Rp' + context.parsed.y.toLocaleString('id-ID');
+                    }
+                  }
+                }
+              }
+            }
+          });
+        }
+      }
+
+      function refreshPage() {
+        const totals = renderTable();
+        updateChart(totals.income, totals.expense);
+      }
+
+      // Initial render
+      refreshPage();
+
+      // Event change dropdown
+      $("#monthSelect, #yearSelect").on("change", () => {
+        refreshPage();
+      });
+
+      // Export PDF
+      document.getElementById("exportPDF").addEventListener("click", () => {
+        const table = document.querySelector("#transactionTable");
+        html2canvas(table).then(canvas => {
+          const imgData = canvas.toDataURL("image/png");
+          const pdf = new jspdf.jsPDF("p", "mm", "a4");
+          pdf.text("Riwayat Transaksi", 10, 10);
+          const imgProps = pdf.getImageProperties(imgData);
+          const pdfWidth = pdf.internal.pageSize.getWidth() - 20;
+          const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+          pdf.addImage(imgData, "PNG", 10, 20, pdfWidth, pdfHeight);
+          pdf.save("Riwayat_Transaksi.pdf");
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>

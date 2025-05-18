@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Input Transaksi - Catatan Keuangan</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap');
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: #F5F3FF;
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-[#6D28D9] text-white py-4 px-6 shadow-lg flex items-center justify-between rounded-b-2xl">
+    <div class="flex items-center gap-3">
+      <img src="https://img.icons8.com/ios-filled/50/ffffff/wallet.png" class="w-6 h-6" alt="icon" />
+      <h1 class="text-lg font-semibold">Catatan Keuangan</h1>
+    </div>
+    <div class="flex items-center gap-4">
+      <div><span class="text-xs opacity-70"></span></div>
+      <a href="history.html" title="Lihat Riwayat" class="flex items-center gap-1 bg-purple-700 hover:bg-purple-800 rounded px-3 py-1 text-xs font-semibold transition">
+        <img src="https://img.icons8.com/ios-filled/24/ffffff/bar-chart.png" class="w-4 h-4" alt="ikon grafik" />
+      </a>
+    </div>
+  </header>
+
+  <main class="max-w-md mx-auto mt-8 p-6 space-y-8">
+
+    <!-- Input Link Google Sheet -->
+    <div class="bg-purple-50 rounded-xl shadow-md p-4 border border-purple-300">
+      <label class="block text-sm font-semibold text-purple-700 mb-3">Link Google Sheets Web App</label>
+      <input
+        type="text"
+        id="sheetUrl"
+        class="w-full p-3 rounded-lg border border-purple-400 placeholder-purple-400 text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
+        placeholder="https://script.google.com/..."
+      />
+    </div> 
+
+    <!-- Ringkasan -->
+    <div class="flex justify-between text-sm space-x-4">
+      <div class="bg-purple-100 text-purple-800 px-4 py-3 rounded-xl w-[48%] text-center">
+        <div>Pemasukan</div>
+        <div id="totalIncome" class="font-bold mt-1">Rp0</div>
+      </div>
+      <div class="bg-red-100 text-red-800 px-4 py-3 rounded-xl w-[48%] text-center">
+        <div>Pengeluaran</div>
+        <div id="totalExpense" class="font-bold mt-1">Rp0</div>
+      </div>
+    </div>
+
+    <!-- Form Input Transaksi -->
+    <div class="bg-white rounded-xl shadow p-4 space-y-4">
+      <label class="text-sm font-medium block mb-1">Tanggal</label>
+      <input type="date" id="date" class="border w-full p-2 rounded" />
+
+      <label class="text-sm font-medium block mb-1">Keterangan</label>
+      <input type="text" id="description" class="border w-full p-2 rounded" placeholder="Misalnya: Gaji Bulanan" />
+
+      <label class="text-sm font-medium block mb-1">Kategori</label>
+      <input type="text" id="category" class="border w-full p-2 rounded" placeholder="Contoh: Gaji, Makan, Transport" />
+
+      <label class="text-sm font-medium block mb-1">Tipe Transaksi</label>
+      <select id="type" class="border w-full p-2 rounded">
+        <option value="income">Pemasukan</option>
+        <option value="expense">Pengeluaran</option>
+      </select>
+
+      <label class="text-sm font-medium block mb-1">Jumlah (Rp)</label>
+      <input type="number" id="amount" class="border w-full p-2 rounded" placeholder="Masukkan jumlah" />
+    </div>
+
+    <!-- Tombol -->
+    <div class="grid grid-cols-2 gap-3">
+      <button id="addTransaction" class="bg-[#6D28D9] text-white py-2 rounded-xl">+ Tambah</button>
+      <button id="deleteLastRow" class="bg-[#A78BFA] text-white py-2 rounded-xl">Hapus Terakhir</button>
+      <button id="clearData" class="bg-[#9333EA] text-white py-2 rounded-xl col-span-2">🗑 Hapus Semua</button>
+      <a href="history.html" class="bg-[#8B5CF6] text-white py-2 rounded-xl col-span-2 text-center block">📊 Lihat Riwayat</a>
+    </div>
+
+  </main>
+
+  <script>
+    let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
+    let sheetUrl = localStorage.getItem('sheetUrl') || "";
+
+    $("#sheetUrl").val(sheetUrl);
+
+    $("#sheetUrl").on("input", function () {
+      sheetUrl = $(this).val();
+      localStorage.setItem('sheetUrl', sheetUrl);
+    });
+
+    async function syncToSheet(data) {
+      if (!sheetUrl) return;
+      try {
+        await fetch(sheetUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+      } catch (error) {
+        console.error("Gagal sync ke Sheet:", error);
+      }
+    }
+
+    function updateTotals() {
+      let income = 0, expense = 0;
+      transactions.forEach(t => {
+        if (t.type === "income") income += t.amount;
+        else expense += t.amount;
+      });
+      $("#totalIncome").text(`Rp${income.toLocaleString("id-ID")}`);
+      $("#totalExpense").text(`Rp${expense.toLocaleString("id-ID")}`);
+    }
+
+    $("#addTransaction").click(() => {
+      const date = $("#date").val();
+      const description = $("#description").val();
+      const category = $("#category").val();
+      const type = $("#type").val();
+      const amount = parseInt($("#amount").val()) || 0;
+
+      if (!date || !description || !category || amount <= 0) {
+        return alert("Semua field harus diisi!");
+      }
+
+      const transaction = { date, description, category, type, amount };
+      transactions.push(transaction);
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      syncToSheet(transaction);
+      updateTotals();
+      alert("Transaksi berhasil ditambahkan!");
+      // Reset form
+      $("#date").val('');
+      $("#description").val('');
+      $("#category").val('');
+      $("#amount").val('');
+      $("#type").val('income');
+    });
+
+    $("#clearData").click(() => {
+      if (confirm("Hapus semua data?")) {
+        transactions = [];
+        localStorage.setItem('transactions', JSON.stringify(transactions));
+        updateTotals();
+        alert("Semua data telah dihapus!");
+      }
+    });
+
+    $("#deleteLastRow").click(() => {
+      if (!transactions.length) return alert("Tidak ada data untuk dihapus");
+      transactions.pop();
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      updateTotals();
+      alert("Data terakhir berhasil dihapus!");
+    });
+
+    $(document).ready(() => {
+      updateTotals();
+    });
+  </script>
+</body>
+</html>
