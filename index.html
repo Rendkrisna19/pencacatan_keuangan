@@ -102,6 +102,7 @@
     <div class="flex-1 px-6 pt-6 pb-24 overflow-y-auto hide-scroll smooth-scroll">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-gray-800">Riwayat Transaksi</h2>
+        <a href="history.html" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition">Lihat Semua</a>
       </div>
 
       <div class="flex gap-2 mb-6 overflow-x-auto hide-scroll pb-2">
@@ -120,9 +121,10 @@
         <i class="fas fa-home text-xl"></i>
         <span class="text-[10px] font-medium">Home</span>
       </button>
-      <button onclick="alert('Fitur riwayat grafik bisa ditambahkan disini!')" class="text-gray-400 hover:text-indigo-600 transition flex flex-col items-center gap-1">
+      
+      <button onclick="window.location.href='history.html'" class="text-gray-400 hover:text-indigo-600 transition flex flex-col items-center gap-1">
         <i class="fas fa-chart-pie text-xl"></i>
-        <span class="text-[10px] font-medium">Statistik</span>
+        <span class="text-[10px] font-medium">Riwayat</span>
       </button>
       
       <div class="relative -top-6">
@@ -210,7 +212,7 @@
   </div>
 
   <script>
-    // Inisialisasi Data (Tidak menghapus data sebelumnya di localStorage)
+    // Inisialisasi Data
     let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
     let sheetUrl = localStorage.getItem('sheetUrl') || "";
     let currentFilter = 'all';
@@ -268,7 +270,7 @@
       $("#summaryTitipan").text(formatRp(titipan));
     }
 
-    // Render Riwayat Transaksi
+    // Render Riwayat Transaksi (Batasi hanya 5 terbaru agar UI rapi)
     function renderTransactions() {
       const list = $("#transactionList");
       list.empty();
@@ -276,8 +278,11 @@
       // Filter & Sortir dari yang terbaru
       let filtered = transactions.filter(t => currentFilter === 'all' || t.type === currentFilter);
       let sorted = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      // Ambil 5 data teratas saja untuk Home
+      let recentTransactions = sorted.slice(0, 5);
 
-      if (sorted.length === 0) {
+      if (recentTransactions.length === 0) {
         list.append(`
           <div class="text-center py-8">
             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -289,7 +294,7 @@
         return;
       }
 
-      sorted.forEach((t) => {
+      recentTransactions.forEach((t) => {
         let iconHtml, amountColor, sign;
         
         if (t.type === 'income') {
@@ -298,7 +303,7 @@
           sign = '+';
         } else if (t.type === 'expense') {
           iconHtml = `<div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center"><i class="fas fa-shopping-bag"></i></div>`;
-          amountColor = 'text-gray-800'; // Sesuai desain UI modern, expense biasa hitam
+          amountColor = 'text-gray-800';
           sign = '-';
         } else {
           // Tipe Titipan
@@ -324,6 +329,17 @@
         `;
         list.append(itemHTML);
       });
+      
+      // Jika data lebih dari 5, munculkan info
+      if (sorted.length > 5) {
+        list.append(`
+          <div class="text-center pt-2">
+            <button onclick="window.location.href='history.html'" class="text-xs text-indigo-600 font-semibold hover:underline">
+              Lihat ${sorted.length - 5} transaksi lainnya...
+            </button>
+          </div>
+        `);
+      }
     }
 
     // Fungsi Filter
@@ -371,13 +387,11 @@
         return alert("Harap isi keterangan dan jumlah dengan benar!");
       }
 
-      // Kategori disederhanakan mengikuti tipe atau input deskripsi
       const category = type; 
 
       const transaction = { id: Date.now(), date, description, category, type, amount };
       transactions.push(transaction);
       
-      // Simpan dan Update UI Realtime
       localStorage.setItem('transactions', JSON.stringify(transactions));
       syncToSheet(transaction);
       
@@ -406,7 +420,7 @@
       }
     });
 
-    // Inisialisasi awal saat halaman dimuat
+    // Inisialisasi awal
     $(document).ready(() => {
       updateDashboard();
       renderTransactions();
