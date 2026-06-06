@@ -130,7 +130,7 @@
     <div class="flex-1 px-6 pt-6 pb-24 overflow-y-auto hide-scroll smooth-scroll">
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-lg font-bold text-gray-800">Catatan & Proyek</h2>
-        <input type="month" id="filterMonth" class="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1 outline-none" onchange="renderNotes()">
+        <input type="month" id="filterMonth" class="text-xs font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2 py-1 outline-none" onchange="renderNotes(); updateDashboard();">
       </div>
 
       <div class="flex gap-2 mb-6 overflow-x-auto hide-scroll pb-2">
@@ -454,17 +454,24 @@
     // Hitung Saldo Realtime
     function updateDashboard() {
       let income = 0, expense = 0, titipan = 0;
+      let monthlyExpense = 0;
+      const selectedMonth = $("#filterMonth").val();
       
       transactions.forEach(t => {
         if (t.type === "income") income += t.amount;
-        else if (t.type === "expense") expense += t.amount;
+        else if (t.type === "expense") {
+          expense += t.amount;
+          if (!selectedMonth || t.date.startsWith(selectedMonth)) {
+            monthlyExpense += t.amount;
+          }
+        }
         else if (t.type === "titipan") titipan += t.amount;
       });
 
       const currentBalance = income - expense;
 
       $("#totalBalance").text(formatRp(currentBalance));
-      $("#summaryExpense").text(formatRp(expense));
+      $("#summaryExpense").text(formatRp(monthlyExpense));
       $("#summaryTitipan").text(formatRp(titipan));
 
       // Update Dompet
