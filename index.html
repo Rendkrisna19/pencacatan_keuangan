@@ -3,95 +3,234 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Input Transaksi - Catatan Keuangan</title>
+  <title>Aplikasi Keuangan Modern</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
     body {
       font-family: 'Poppins', sans-serif;
-      background-color: #F5F3FF;
+      background-color: #F4F5F9;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Scrollbar minimalis agar enak dilihat */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 10px;
+    }
+
+    /* Glassmorphism untuk Modal */
+    .glass-modal {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    /* Gradient Card */
+    .bg-card-gradient {
+      background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+    }
+
+    .hide-scroll {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none;  /* IE and Edge */
+    }
+    .hide-scroll::-webkit-scrollbar {
+      display: none;
     }
   </style>
 </head>
-<body class="min-h-screen">
+<body class="flex justify-center min-h-screen bg-gray-200">
 
-  <!-- Header -->
-  <header class="bg-[#6D28D9] text-white py-4 px-6 shadow-lg flex items-center justify-between rounded-b-2xl">
-    <div class="flex items-center gap-3">
-      <img src="https://img.icons8.com/ios-filled/50/ffffff/wallet.png" class="w-6 h-6" alt="icon" />
-      <h1 class="text-lg font-semibold">Catatan Keuangan</h1>
-    </div>
-    <div class="flex items-center gap-4">
-      <div><span class="text-xs opacity-70"></span></div>
-      <a href="history.html" title="Lihat Riwayat" class="flex items-center gap-1 bg-purple-700 hover:bg-purple-800 rounded px-3 py-1 text-xs font-semibold transition">
-        <img src="https://img.icons8.com/ios-filled/24/ffffff/bar-chart.png" class="w-4 h-4" alt="ikon grafik" />
-      </a>
-    </div>
-  </header>
-
-  <main class="max-w-md mx-auto mt-8 p-6 space-y-8">
-
-    <!-- Input Link Google Sheet -->
-    <div class="bg-purple-50 rounded-xl shadow-md p-4 border border-purple-300">
-      <label class="block text-sm font-semibold text-purple-700 mb-3">Link Google Sheets Web App</label>
-      <input
-        type="text"
-        id="sheetUrl"
-        class="w-full p-3 rounded-lg border border-purple-400 placeholder-purple-400 text-purple-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition"
-        placeholder="https://script.google.com/..."
-      />
-    </div> 
-
-    <!-- Ringkasan -->
-    <div class="flex justify-between text-sm space-x-4">
-      <div class="bg-purple-100 text-purple-800 px-4 py-3 rounded-xl w-[48%] text-center">
-        <div>Pemasukan</div>
-        <div id="totalIncome" class="font-bold mt-1">Rp0</div>
+  <div class="w-full max-w-md bg-[#F4F5F9] min-h-screen relative shadow-2xl overflow-hidden flex flex-col">
+    
+    <div class="bg-card-gradient rounded-b-[2.5rem] pt-10 pb-6 px-6 text-white shadow-lg z-10 relative">
+      <div class="flex justify-between items-center mb-6">
+        <div>
+          <p class="text-indigo-200 text-sm font-medium">Total Saldo Aktif</p>
+          <h1 class="text-3xl font-bold tracking-wide mt-1" id="totalBalance">Rp0</h1>
+        </div>
+        <button onclick="toggleSettingsModal()" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm hover:bg-white/30 transition">
+          <i class="fas fa-cog"></i>
+        </button>
       </div>
-      <div class="bg-red-100 text-red-800 px-4 py-3 rounded-xl w-[48%] text-center">
-        <div>Pengeluaran</div>
-        <div id="totalExpense" class="font-bold mt-1">Rp0</div>
+
+      <div class="flex justify-between items-center px-2 mt-4">
+        <div class="flex flex-col items-center gap-2">
+          <button onclick="openModal('income')" class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md hover:bg-white/30 transition shadow-sm">
+            <i class="fas fa-arrow-down text-green-300 text-lg"></i>
+          </button>
+          <span class="text-xs font-medium text-indigo-100">Pemasukan</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <button onclick="openModal('expense')" class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md hover:bg-white/30 transition shadow-sm">
+            <i class="fas fa-arrow-up text-red-300 text-lg"></i>
+          </button>
+          <span class="text-xs font-medium text-indigo-100">Pengeluaran</span>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <button onclick="openModal('titipan')" class="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md hover:bg-white/30 transition shadow-sm">
+            <i class="fas fa-piggy-bank text-purple-300 text-lg"></i>
+          </button>
+          <span class="text-xs font-medium text-indigo-100">Titipan</span>
+        </div>
       </div>
     </div>
 
-    <!-- Form Input Transaksi -->
-    <div class="bg-white rounded-xl shadow p-4 space-y-4">
-      <label class="text-sm font-medium block mb-1">Tanggal</label>
-      <input type="date" id="date" class="border w-full p-2 rounded" />
-
-      <label class="text-sm font-medium block mb-1">Keterangan</label>
-      <input type="text" id="description" class="border w-full p-2 rounded" placeholder="Misalnya: Gaji Bulanan" />
-
-      <label class="text-sm font-medium block mb-1">Kategori</label>
-      <input type="text" id="category" class="border w-full p-2 rounded" placeholder="Contoh: Gaji, Makan, Transport" />
-
-      <label class="text-sm font-medium block mb-1">Tipe Transaksi</label>
-      <select id="type" class="border w-full p-2 rounded">
-        <option value="income">Pemasukan</option>
-        <option value="expense">Pengeluaran</option>
-      </select>
-
-      <label class="text-sm font-medium block mb-1">Jumlah (Rp)</label>
-      <input type="number" id="amount" class="border w-full p-2 rounded" placeholder="Masukkan jumlah" />
+    <div class="px-6 -mt-4 relative z-20">
+      <div class="bg-white rounded-2xl shadow-sm p-4 flex justify-between items-center border border-gray-100">
+        <div class="text-center w-1/2 border-r border-gray-100">
+          <p class="text-xs text-gray-400 font-medium mb-1">Pengeluaran Bulan Ini</p>
+          <p class="text-sm font-bold text-red-500" id="summaryExpense">Rp0</p>
+        </div>
+        <div class="text-center w-1/2">
+          <p class="text-xs text-gray-400 font-medium mb-1">Total Titipan (Pacar)</p>
+          <p class="text-sm font-bold text-purple-600" id="summaryTitipan">Rp0</p>
+        </div>
+      </div>
     </div>
 
-    <!-- Tombol -->
-    <div class="grid grid-cols-2 gap-3">
-      <button id="addTransaction" class="bg-[#6D28D9] text-white py-2 rounded-xl">+ Tambah</button>
-      <button id="deleteLastRow" class="bg-[#A78BFA] text-white py-2 rounded-xl">Hapus Terakhir</button>
-      <button id="clearData" class="bg-[#9333EA] text-white py-2 rounded-xl col-span-2">🗑 Hapus Semua</button>
-      <a href="history.html" class="bg-[#8B5CF6] text-white py-2 rounded-xl col-span-2 text-center block">📊 Lihat Riwayat</a>
+    <div class="flex-1 px-6 pt-6 pb-24 overflow-y-auto hide-scroll smooth-scroll">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold text-gray-800">Riwayat Transaksi</h2>
+      </div>
+
+      <div class="flex gap-2 mb-6 overflow-x-auto hide-scroll pb-2">
+        <button onclick="filterData('all')" id="btn-all" class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold bg-indigo-600 text-white shadow-md transition">Semua</button>
+        <button onclick="filterData('income')" id="btn-income" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition">Pemasukan</button>
+        <button onclick="filterData('expense')" id="btn-expense" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition">Pengeluaran</button>
+        <button onclick="filterData('titipan')" id="btn-titipan" class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-semibold bg-white text-gray-500 border border-gray-200 hover:bg-gray-50 transition">Titipan</button>
+      </div>
+
+      <div id="transactionList" class="space-y-3">
+        </div>
     </div>
 
-  </main>
+    <div class="absolute bottom-0 w-full bg-white border-t border-gray-100 rounded-t-3xl px-6 py-4 flex justify-between items-center z-30 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      <button class="text-indigo-600 flex flex-col items-center gap-1">
+        <i class="fas fa-home text-xl"></i>
+        <span class="text-[10px] font-medium">Home</span>
+      </button>
+      <button onclick="alert('Fitur riwayat grafik bisa ditambahkan disini!')" class="text-gray-400 hover:text-indigo-600 transition flex flex-col items-center gap-1">
+        <i class="fas fa-chart-pie text-xl"></i>
+        <span class="text-[10px] font-medium">Statistik</span>
+      </button>
+      
+      <div class="relative -top-6">
+        <button onclick="openModal('expense')" class="w-14 h-14 bg-indigo-600 hover:bg-indigo-700 text-white rounded-full flex items-center justify-center shadow-lg shadow-indigo-200 transition transform hover:scale-105">
+          <i class="fas fa-plus text-2xl"></i>
+        </button>
+      </div>
+
+      <button onclick="alert('Fitur Dompet/Kartu bisa ditambahkan disini!')" class="text-gray-400 hover:text-indigo-600 transition flex flex-col items-center gap-1">
+        <i class="fas fa-wallet text-xl"></i>
+        <span class="text-[10px] font-medium">Dompet</span>
+      </button>
+      <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-indigo-600 transition flex flex-col items-center gap-1">
+        <i class="fas fa-user text-xl"></i>
+        <span class="text-[10px] font-medium">Profil</span>
+      </button>
+    </div>
+
+    <div id="transactionModal" class="fixed inset-0 z-50 hidden items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity">
+      <div class="glass-modal w-full max-w-md bg-white rounded-t-3xl sm:rounded-3xl p-6 transform translate-y-full transition-transform duration-300" id="modalContent">
+        <div class="flex justify-between items-center mb-6">
+          <h3 class="text-lg font-bold text-gray-800" id="modalTitle">Tambah Transaksi</h3>
+          <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center hover:bg-gray-200">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 mb-1 block">Tipe Transaksi</label>
+            <select id="type" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="expense">Pengeluaran</option>
+              <option value="income">Pemasukan Pribadi</option>
+              <option value="titipan">Titipan (Pacar/Orang Lain)</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 mb-1 block">Tanggal</label>
+            <input type="date" id="date" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 mb-1 block">Keterangan</label>
+            <input type="text" id="description" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Misal: Makan Siang, Gaji, Uang Jajan..." />
+          </div>
+          <div>
+            <label class="text-xs font-semibold text-gray-500 mb-1 block">Jumlah (Rp)</label>
+            <div class="relative">
+              <span class="absolute left-4 top-3 text-gray-400 font-semibold">Rp</span>
+              <input type="number" id="amount" class="w-full p-3 pl-10 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-800 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0" />
+            </div>
+          </div>
+          <button id="saveTransaction" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl mt-4 shadow-lg shadow-indigo-200 transition">
+            Simpan Transaksi
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div id="settingsModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div class="bg-white w-11/12 max-w-sm rounded-3xl p-6 shadow-2xl">
+        <div class="flex justify-between items-center mb-5">
+          <h3 class="text-lg font-bold text-gray-800">Pengaturan</h3>
+          <button onclick="toggleSettingsModal()" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-lg"></i></button>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="text-xs font-semibold text-gray-500 mb-1 block">Link Google Sheets Web App</label>
+            <input type="text" id="sheetUrl" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="https://script.google.com/..." />
+            <p class="text-[10px] text-gray-400 mt-1">*Untuk backup data otomatis</p>
+          </div>
+          
+          <div class="pt-4 border-t border-gray-100 flex flex-col gap-2">
+            <button id="deleteLastRow" class="w-full bg-orange-100 text-orange-600 hover:bg-orange-200 font-semibold py-3 rounded-xl text-sm transition">
+              <i class="fas fa-undo mr-2"></i>Batalkan Transaksi Terakhir
+            </button>
+            <button id="clearData" class="w-full bg-red-100 text-red-600 hover:bg-red-200 font-semibold py-3 rounded-xl text-sm transition">
+              <i class="fas fa-trash-alt mr-2"></i>Hapus Semua Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
 
   <script>
+    // Inisialisasi Data (Tidak menghapus data sebelumnya di localStorage)
     let transactions = JSON.parse(localStorage.getItem('transactions')) || [];
     let sheetUrl = localStorage.getItem('sheetUrl') || "";
+    let currentFilter = 'all';
 
+    // Auto set tanggal hari ini
+    document.getElementById('date').valueAsDate = new Date();
+
+    // Format Rupiah
+    const formatRp = (angka) => {
+      return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(angka);
+    };
+
+    // Format Tanggal
+    const formatDate = (dateStr) => {
+      const options = { day: 'numeric', month: 'short', year: 'numeric' };
+      return new Date(dateStr).toLocaleDateString('id-ID', options);
+    };
+
+    // Pengaturan Google Sheet
     $("#sheetUrl").val(sheetUrl);
-
     $("#sheetUrl").on("input", function () {
       sheetUrl = $(this).val();
       localStorage.setItem('sheetUrl', sheetUrl);
@@ -107,65 +246,172 @@
           body: JSON.stringify(data)
         });
       } catch (error) {
-        console.error("Gagal sync ke Sheet:", error);
+        console.log("Sync background sheet:", error);
       }
     }
 
-    function updateTotals() {
-      let income = 0, expense = 0;
+    // Hitung Saldo Realtime
+    function updateDashboard() {
+      let income = 0, expense = 0, titipan = 0;
+      
       transactions.forEach(t => {
         if (t.type === "income") income += t.amount;
-        else expense += t.amount;
+        else if (t.type === "expense") expense += t.amount;
+        else if (t.type === "titipan") titipan += t.amount;
       });
-      $("#totalIncome").text(`Rp${income.toLocaleString("id-ID")}`);
-      $("#totalExpense").text(`Rp${expense.toLocaleString("id-ID")}`);
+
+      // Saldo aktif adalah Pemasukan Pribadi dikurangi Pengeluaran
+      const currentBalance = income - expense;
+
+      $("#totalBalance").text(formatRp(currentBalance));
+      $("#summaryExpense").text(formatRp(expense));
+      $("#summaryTitipan").text(formatRp(titipan));
     }
 
-    $("#addTransaction").click(() => {
+    // Render Riwayat Transaksi
+    function renderTransactions() {
+      const list = $("#transactionList");
+      list.empty();
+
+      // Filter & Sortir dari yang terbaru
+      let filtered = transactions.filter(t => currentFilter === 'all' || t.type === currentFilter);
+      let sorted = filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      if (sorted.length === 0) {
+        list.append(`
+          <div class="text-center py-8">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <i class="fas fa-receipt text-2xl text-gray-300"></i>
+            </div>
+            <p class="text-sm text-gray-400">Belum ada transaksi</p>
+          </div>
+        `);
+        return;
+      }
+
+      sorted.forEach((t) => {
+        let iconHtml, amountColor, sign;
+        
+        if (t.type === 'income') {
+          iconHtml = `<div class="w-10 h-10 rounded-xl bg-green-100 text-green-600 flex items-center justify-center"><i class="fas fa-arrow-down"></i></div>`;
+          amountColor = 'text-green-600';
+          sign = '+';
+        } else if (t.type === 'expense') {
+          iconHtml = `<div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center"><i class="fas fa-shopping-bag"></i></div>`;
+          amountColor = 'text-gray-800'; // Sesuai desain UI modern, expense biasa hitam
+          sign = '-';
+        } else {
+          // Tipe Titipan
+          iconHtml = `<div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center"><i class="fas fa-piggy-bank"></i></div>`;
+          amountColor = 'text-purple-600';
+          sign = '+';
+        }
+
+        const itemHTML = `
+          <div class="bg-white p-4 rounded-2xl shadow-sm flex justify-between items-center border border-gray-50 hover:shadow-md transition cursor-pointer">
+            <div class="flex items-center gap-4">
+              ${iconHtml}
+              <div>
+                <h4 class="text-sm font-bold text-gray-800 capitalize">${t.description}</h4>
+                <p class="text-[11px] text-gray-400 mt-0.5">${formatDate(t.date)}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <p class="text-sm font-bold ${amountColor}">${sign}${formatRp(t.amount).replace('Rp', '')}</p>
+              <p class="text-[10px] text-gray-400 uppercase tracking-wider mt-0.5">${t.type}</p>
+            </div>
+          </div>
+        `;
+        list.append(itemHTML);
+      });
+    }
+
+    // Fungsi Filter
+    function filterData(type) {
+      currentFilter = type;
+      // Update styling button filter
+      $('.filter-btn').removeClass('bg-indigo-600 text-white shadow-md').addClass('bg-white text-gray-500 border border-gray-200');
+      $(`#btn-${type}`).removeClass('bg-white text-gray-500 border border-gray-200').addClass('bg-indigo-600 text-white shadow-md border-transparent');
+      
+      renderTransactions();
+    }
+
+    // --- LOGIC MODAL ---
+    function openModal(defaultType = 'expense') {
+      $("#type").val(defaultType);
+      $("#transactionModal").removeClass("hidden").addClass("flex");
+      setTimeout(() => {
+        $("#modalContent").removeClass("translate-y-full").addClass("translate-y-0");
+      }, 10);
+    }
+
+    function closeModal() {
+      $("#modalContent").removeClass("translate-y-0").addClass("translate-y-full");
+      setTimeout(() => {
+        $("#transactionModal").removeClass("flex").addClass("hidden");
+        // Reset form
+        $("#description").val('');
+        $("#amount").val('');
+        document.getElementById('date').valueAsDate = new Date();
+      }, 300);
+    }
+
+    function toggleSettingsModal() {
+      $("#settingsModal").toggleClass("hidden flex");
+    }
+
+    // Simpan Transaksi Baru
+    $("#saveTransaction").click(() => {
       const date = $("#date").val();
       const description = $("#description").val();
-      const category = $("#category").val();
       const type = $("#type").val();
       const amount = parseInt($("#amount").val()) || 0;
 
-      if (!date || !description || !category || amount <= 0) {
-        return alert("Semua field harus diisi!");
+      if (!date || !description || amount <= 0) {
+        return alert("Harap isi keterangan dan jumlah dengan benar!");
       }
 
-      const transaction = { date, description, category, type, amount };
+      // Kategori disederhanakan mengikuti tipe atau input deskripsi
+      const category = type; 
+
+      const transaction = { id: Date.now(), date, description, category, type, amount };
       transactions.push(transaction);
+      
+      // Simpan dan Update UI Realtime
       localStorage.setItem('transactions', JSON.stringify(transactions));
       syncToSheet(transaction);
-      updateTotals();
-      alert("Transaksi berhasil ditambahkan!");
-      // Reset form
-      $("#date").val('');
-      $("#description").val('');
-      $("#category").val('');
-      $("#amount").val('');
-      $("#type").val('income');
+      
+      updateDashboard();
+      renderTransactions();
+      closeModal();
+    });
+
+    // Fitur Hapus Data
+    $("#deleteLastRow").click(() => {
+      if (!transactions.length) return alert("Belum ada data.");
+      transactions.pop();
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      updateDashboard();
+      renderTransactions();
+      toggleSettingsModal();
     });
 
     $("#clearData").click(() => {
-      if (confirm("Hapus semua data?")) {
+      if (confirm("Yakin ingin menghapus SELURUH riwayat keuangan?")) {
         transactions = [];
         localStorage.setItem('transactions', JSON.stringify(transactions));
-        updateTotals();
-        alert("Semua data telah dihapus!");
+        updateDashboard();
+        renderTransactions();
+        toggleSettingsModal();
       }
     });
 
-    $("#deleteLastRow").click(() => {
-      if (!transactions.length) return alert("Tidak ada data untuk dihapus");
-      transactions.pop();
-      localStorage.setItem('transactions', JSON.stringify(transactions));
-      updateTotals();
-      alert("Data terakhir berhasil dihapus!");
+    // Inisialisasi awal saat halaman dimuat
+    $(document).ready(() => {
+      updateDashboard();
+      renderTransactions();
     });
 
-    $(document).ready(() => {
-      updateTotals();
-    });
   </script>
 </body>
 </html>
