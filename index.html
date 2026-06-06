@@ -2,8 +2,15 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Aplikasi Keuangan Modern</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1E3A8A">
+  <link rel="apple-touch-icon" href="logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -237,9 +244,14 @@
             <label class="text-xs font-semibold text-gray-500 mb-1 block">Tanggal Proyek</label>
             <input type="date" id="projectDate" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700" />
           </div>
-          <button id="saveProjectBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl mt-4 shadow-lg shadow-indigo-200 transition">
-            Simpan Proyek
-          </button>
+          <div class="flex gap-2 mt-4">
+            <button id="deleteProjectBtn" type="button" class="hidden w-16 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-xl transition flex items-center justify-center shadow-sm">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button id="saveProjectBtn" class="flex-1 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition">
+              Simpan Proyek
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -262,9 +274,14 @@
             <label class="text-xs font-semibold text-gray-500 mb-1 block">Apa yang dikerjakan hari ini?</label>
             <textarea id="noteContent" rows="4" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium text-gray-700 focus:outline-none" placeholder="Misal: Menyelesaikan fitur A..."></textarea>
           </div>
-          <button id="saveNoteBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl mt-4 shadow-lg shadow-indigo-200 transition">
-            Simpan Catatan
-          </button>
+          <div class="flex gap-2 mt-4">
+            <button id="deleteNoteBtn" type="button" class="hidden w-16 bg-red-100 hover:bg-red-200 text-red-600 font-bold rounded-xl transition flex items-center justify-center shadow-sm">
+              <i class="fas fa-trash"></i>
+            </button>
+            <button id="saveNoteBtn" class="flex-1 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-200 transition">
+              Simpan Catatan
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -356,6 +373,8 @@
     let userName = localStorage.getItem('userName') || "Pengguna";
     let userPhoto = localStorage.getItem('userPhoto') || `https://ui-avatars.com/api/?name=${userName}&background=random`;
     let currentNoteFilter = 'all';
+    let currentEditId = null;
+    let currentEditNoteId = null;
 
     // Set Filter Month ke bulan ini
     const today = new Date();
@@ -511,7 +530,10 @@
                     <p class="text-[11px] text-gray-400 font-medium">${formatDate(item.date)}</p>
                   </div>
                 </div>
-                ${statusBadge}
+                <div class="flex flex-col items-end gap-1.5">
+                  ${statusBadge}
+                  <button onclick="editProject(${item.id})" class="text-[10px] text-indigo-500 hover:text-indigo-700 font-semibold"><i class="fas fa-edit"></i> Edit</button>
+                </div>
               </div>
               <div class="bg-gray-50 rounded-xl p-3 flex justify-between items-center mt-3 border border-gray-100">
                 <div>
@@ -532,7 +554,10 @@
               <div class="flex-1">
                 <div class="flex justify-between items-center mb-1">
                   <h4 class="text-sm font-bold text-gray-800">Catatan Harian</h4>
-                  <p class="text-[11px] text-gray-400 font-medium">${formatDate(item.date)}</p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-[11px] text-gray-400 font-medium">${formatDate(item.date)}</p>
+                    <button onclick="editNote(${item.id})" class="text-[10px] text-teal-500 hover:text-teal-700"><i class="fas fa-edit text-xs"></i></button>
+                  </div>
                 </div>
                 <p class="text-xs text-gray-600 leading-relaxed">${item.content}</p>
               </div>
@@ -569,8 +594,32 @@
     }
 
     // --- LOGIC MODAL PROYEK ---
-    function openProjectModal() {
-      $("#projectStatus").val('belum');
+    function editProject(id) {
+      openProjectModal(id);
+    }
+
+    function openProjectModal(id = null) {
+      currentEditId = id;
+      if (id) {
+        const p = projects.find(x => x.id === id);
+        if (p) {
+          $("#projectName").val(p.name);
+          $("#projectTotal").val(p.total);
+          $("#projectStatus").val(p.status);
+          $("#projectDP").val(p.dp || 0);
+          $("#projectDate").val(p.date);
+          $("#projectModal h3").text("Edit Proyek");
+          $("#deleteProjectBtn").removeClass("hidden");
+        }
+      } else {
+        $("#projectModal h3").text("Catat Proyek");
+        $("#deleteProjectBtn").addClass("hidden");
+        $("#projectName").val('');
+        $("#projectTotal").val('');
+        $("#projectDP").val('');
+        $("#projectStatus").val('belum');
+        document.getElementById('projectDate').valueAsDate = new Date();
+      }
       toggleDPInput();
       $("#projectModal").removeClass("hidden").addClass("flex");
       setTimeout(() => {
@@ -582,10 +631,6 @@
       $("#projectModalContent").removeClass("translate-y-0").addClass("translate-y-full");
       setTimeout(() => {
         $("#projectModal").removeClass("flex").addClass("hidden");
-        $("#projectName").val('');
-        $("#projectTotal").val('');
-        $("#projectDP").val('');
-        document.getElementById('projectDate').valueAsDate = new Date();
       }, 300);
     }
 
@@ -612,16 +657,51 @@
       if (status === 'lunas') sisa = 0;
       else if (status === 'dp') sisa = total - dp;
 
-      const project = { id: Date.now(), name, total, status, dp, sisa, date };
-      projects.push(project);
-      localStorage.setItem('projects', JSON.stringify(projects));
+      if (currentEditId) {
+        const index = projects.findIndex(x => x.id === currentEditId);
+        if (index > -1) {
+          projects[index] = { ...projects[index], name, total, status, dp, sisa, date };
+        }
+      } else {
+        const project = { id: Date.now(), name, total, status, dp, sisa, date };
+        projects.push(project);
+      }
       
+      localStorage.setItem('projects', JSON.stringify(projects));
       renderNotes();
       closeProjectModal();
     });
 
+    $("#deleteProjectBtn").click(() => {
+      if(confirm("Yakin ingin menghapus data proyek ini?")) {
+        projects = projects.filter(x => x.id !== currentEditId);
+        localStorage.setItem('projects', JSON.stringify(projects));
+        renderNotes();
+        closeProjectModal();
+      }
+    });
+
     // --- LOGIC MODAL CATATAN HARIAN ---
-    function openNoteModal() {
+    function editNote(id) {
+      openNoteModal(id);
+    }
+
+    function openNoteModal(id = null) {
+      currentEditNoteId = id;
+      if (id) {
+        const n = dailyNotes.find(x => x.id === id);
+        if (n) {
+          $("#noteContent").val(n.content);
+          $("#noteDate").val(n.date);
+          $("#noteModal h3").text("Edit Catatan");
+          $("#deleteNoteBtn").removeClass("hidden");
+        }
+      } else {
+        $("#noteModal h3").text("Catatan Harian");
+        $("#deleteNoteBtn").addClass("hidden");
+        $("#noteContent").val('');
+        document.getElementById('noteDate').valueAsDate = new Date();
+      }
       $("#noteModal").removeClass("hidden").addClass("flex");
       setTimeout(() => {
         $("#noteModalContent").removeClass("translate-y-full").addClass("translate-y-0");
@@ -632,8 +712,6 @@
       $("#noteModalContent").removeClass("translate-y-0").addClass("translate-y-full");
       setTimeout(() => {
         $("#noteModal").removeClass("flex").addClass("hidden");
-        $("#noteContent").val('');
-        document.getElementById('noteDate').valueAsDate = new Date();
       }, 300);
     }
 
@@ -643,12 +721,28 @@
 
       if (!content) return alert("Catatan tidak boleh kosong!");
 
-      const note = { id: Date.now(), content, date };
-      dailyNotes.push(note);
-      localStorage.setItem('dailyNotes', JSON.stringify(dailyNotes));
+      if (currentEditNoteId) {
+        const index = dailyNotes.findIndex(x => x.id === currentEditNoteId);
+        if (index > -1) {
+          dailyNotes[index] = { ...dailyNotes[index], content, date };
+        }
+      } else {
+        const note = { id: Date.now(), content, date };
+        dailyNotes.push(note);
+      }
       
+      localStorage.setItem('dailyNotes', JSON.stringify(dailyNotes));
       renderNotes();
       closeNoteModal();
+    });
+
+    $("#deleteNoteBtn").click(() => {
+      if(confirm("Yakin ingin menghapus catatan ini?")) {
+        dailyNotes = dailyNotes.filter(x => x.id !== currentEditNoteId);
+        localStorage.setItem('dailyNotes', JSON.stringify(dailyNotes));
+        renderNotes();
+        closeNoteModal();
+      }
     });
 
     function toggleSettingsModal() {
@@ -703,6 +797,17 @@
       renderNotes();
     });
 
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then((registration) => {
+            console.log('ServiceWorker registration successful dengan scope: ', registration.scope);
+          }, (err) => {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
   </script>
 </body>
 </html>
